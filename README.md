@@ -1,5 +1,7 @@
 ![mosaic](https://github.com/user-attachments/assets/638aefc6-93ae-49db-b5bd-4db15737ed3b)
 
+https://www.loom.com/share/675256788d13441fac23942379359ac4?sid=715c01f1-cafa-4c85-8cfe-bd6ba749a3ec
+
 <img width="1433" alt="Screenshot 2025-05-16 at 9 28 08 AM" src="https://github.com/user-attachments/assets/d137e3a5-5cd7-4b9e-b817-d724dbeac300" />
 
 # MOSAIC
