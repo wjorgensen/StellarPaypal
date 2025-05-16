@@ -41,16 +41,26 @@ impl Contract {
             .extend_ttl_for_contract_instance(contract_address.clone(), max_ttl, max_ttl);
     }
     
-    pub fn init(env: Env, pk: BytesN<65>) -> Result<(), Error> {
+    pub fn __constructor(env: Env, pk: BytesN<65>) {
         if env.storage().instance().has(&STORAGE_KEY_PK) {
-            return Err(Error::AlreadyInited);
+            panic!("Already initialized");
         }
 
         env.storage().instance().set(&STORAGE_KEY_PK, &pk);
 
         Self::extend_ttl(env);
-
-        Ok(())
+    }
+    
+    pub fn initialize(env: Env, pk: BytesN<65>) {
+        Self::__constructor(env, pk);
+    }
+    
+    pub fn constructor(env: Env, pk: BytesN<65>) {
+        Self::__constructor(env, pk);
+    }
+    
+    pub fn init(env: Env, pk: BytesN<65>) {
+        Self::__constructor(env, pk);
     }
 }
 
