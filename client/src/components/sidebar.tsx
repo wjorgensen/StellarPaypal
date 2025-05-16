@@ -5,25 +5,69 @@ import Link from "next/link"
 import Image from "next/image"
 import { Home, Wallet, Send, Award, Settings } from "lucide-react"
 import { usePathname } from "next/navigation"
+import { getWalletData } from "@/lib/blockchain-data"
 
 export default function Sidebar() {
   const pathname = usePathname()
   const [userInitials, setUserInitials] = useState("WJ")
-  const [username, setUsername] = useState("Wes")
-  const [handle, setHandle] = useState("@Wes-Jorgensen")
-  const [balance, setBalance] = useState("$78.00")
+  const [username, setUsername] = useState("User")
+  const [handle, setHandle] = useState("@user")
+  const [balance, setBalance] = useState("$0.00")
   const [walletConnected, setWalletConnected] = useState(false)
+  const [walletAddress, setWalletAddress] = useState("")
 
-  // Check if wallet exists in localStorage
+  // Fetch user information from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedWallet = localStorage.getItem("walletInfo")
-      if (storedWallet) {
+      // Get username
+      const storedUsername = localStorage.getItem("stellarPaypal_username")
+      if (storedUsername) {
+        setUsername(storedUsername)
+        
+        // Generate initials from username
+        const initials = storedUsername
+          .split(" ")
+          .map((name) => name[0])
+          .join("")
+          .toUpperCase()
+          .substring(0, 2)
+        
+        setUserInitials(initials || "US")
+        
+        // Generate handle
+        setHandle(`@${storedUsername.replace(/\s+/g, "-")}`)
+      }
+      
+      // Get wallet address
+      const storedWalletAddress = localStorage.getItem("stellarPaypal_walletAddress")
+      if (storedWalletAddress) {
+        setWalletAddress(storedWalletAddress)
         setWalletConnected(true)
-        // We don't need to parse the wallet data here since we're not using it
+      }
+      
+      // Get wallet info from the wallet page
+      const storedWalletInfo = localStorage.getItem("walletInfo")
+      if (storedWalletInfo) {
+        setWalletConnected(true)
       }
     }
   }, [])
+  
+  // Fetch wallet balance
+  useEffect(() => {
+    async function fetchBalance() {
+      if (walletConnected) {
+        try {
+          const data = await getWalletData(walletAddress)
+          setBalance(`$${data.totalBalance.toFixed(2)}`)
+        } catch (error) {
+          console.error("Error fetching wallet balance:", error)
+        }
+      }
+    }
+    
+    fetchBalance()
+  }, [walletConnected, walletAddress])
 
   // Memoize the paint strokes to ensure they don't re-render on navigation
   const paintStrokes = useMemo(

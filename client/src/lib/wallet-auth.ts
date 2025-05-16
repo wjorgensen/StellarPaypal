@@ -101,6 +101,12 @@ export async function loginWithPasskey(): Promise<{
     // 4. Look up the wallet address in the factory
     const walletAddress = await lookupWalletByPasskey(publicKeyBytes);
     
+    // Mock username for demo purposes - in a real app this would come from the server
+    // Store username in localStorage for dashboard
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('stellarPaypal_username', 'Existing User');
+    }
+    
     console.log('Login: Complete, wallet found');
     return {
       success: true,

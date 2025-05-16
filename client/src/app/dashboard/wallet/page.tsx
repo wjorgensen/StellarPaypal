@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronRight, ArrowRight, Plus, Clock, Copy } from "lucide-react"
 import Link from "next/link"
 import { WalletClient } from '@/lib/client'
+import { getWalletData } from "@/lib/blockchain-data"
 
 export default function WalletPage() {
   const [walletInfo, setWalletInfo] = useState<{
@@ -13,6 +14,57 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("assets");
+  const [walletData, setWalletData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(false);
+  
+  // Check localStorage for user and wallet data on component mount
+  useEffect(() => {
+    async function loadData() {
+      // Check for wallet info
+      const storedWallet = localStorage.getItem('walletInfo');
+      if (storedWallet) {
+        try {
+          const walletInfoData = JSON.parse(storedWallet);
+          setWalletInfo(walletInfoData);
+          
+          // Fetch wallet data
+          setDataLoading(true);
+          try {
+            const data = await getWalletData(walletInfoData.contractId);
+            setWalletData(data);
+          } catch (dataError) {
+            console.error('Failed to fetch wallet data:', dataError);
+          } finally {
+            setDataLoading(false);
+          }
+        } catch (e) {
+          console.error('Failed to parse stored wallet info', e);
+        }
+      } else {
+        // Check if we have a wallet address from signup/login
+        const storedWalletAddress = localStorage.getItem('stellarPaypal_walletAddress');
+        if (storedWalletAddress) {
+          setWalletInfo({
+            contractId: storedWalletAddress,
+            keyId: 'Passkey-Authentication'
+          });
+          
+          // Fetch wallet data
+          setDataLoading(true);
+          try {
+            const data = await getWalletData(storedWalletAddress);
+            setWalletData(data);
+          } catch (dataError) {
+            console.error('Failed to fetch wallet data:', dataError);
+          } finally {
+            setDataLoading(false);
+          }
+        }
+      }
+    }
+    
+    loadData();
+  }, []);
 
   // Create a new wallet
   const createWallet = async () => {
@@ -20,14 +72,39 @@ export default function WalletPage() {
     setError(null);
     
     try {
+      // Get username from localStorage if available
+      let username = "User";
+      if (typeof window !== "undefined") {
+        const storedUsername = localStorage.getItem("stellarPaypal_username");
+        if (storedUsername) {
+          username = storedUsername;
+        }
+      }
+      
       const result = await WalletClient.createWallet(
         'Mosaic', 
-        'User-' + Math.floor(Math.random() * 1000)
+        username + '-' + Math.floor(Math.random() * 1000)
       );
       setWalletInfo(result);
       
       // Store wallet info in localStorage for persistence
       localStorage.setItem('walletInfo', JSON.stringify(result));
+      
+      // Also store in the stellarPaypal_walletAddress for consistency
+      if (result.contractId) {
+        localStorage.setItem('stellarPaypal_walletAddress', result.contractId);
+      }
+      
+      // Fetch wallet data (will be zero balances for a new wallet)
+      setDataLoading(true);
+      try {
+        const data = await getWalletData(result.contractId);
+        setWalletData(data);
+      } catch (dataError) {
+        console.error('Failed to fetch wallet data:', dataError);
+      } finally {
+        setDataLoading(false);
+      }
 
     } catch (err) {
       setError((err as Error).message);
@@ -47,6 +124,22 @@ export default function WalletPage() {
       
       // Store wallet info in localStorage for persistence
       localStorage.setItem('walletInfo', JSON.stringify(result));
+      
+      // Also store in the stellarPaypal_walletAddress for consistency
+      if (result.contractId) {
+        localStorage.setItem('stellarPaypal_walletAddress', result.contractId);
+      }
+      
+      // Fetch wallet data
+      setDataLoading(true);
+      try {
+        const data = await getWalletData(result.contractId);
+        setWalletData(data);
+      } catch (dataError) {
+        console.error('Failed to fetch wallet data:', dataError);
+      } finally {
+        setDataLoading(false);
+      }
 
     } catch (err) {
       setError((err as Error).message);
@@ -54,18 +147,6 @@ export default function WalletPage() {
       setLoading(false);
     }
   };
-
-  // Check localStorage for wallet on component mount
-  useState(() => {
-    const storedWallet = localStorage.getItem('walletInfo');
-    if (storedWallet) {
-      try {
-        setWalletInfo(JSON.parse(storedWallet));
-      } catch (e) {
-        console.error('Failed to parse stored wallet info');
-      }
-    }
-  });
   
   return (
     <div className="max-w-4xl mx-auto py-8 px-6">
@@ -167,39 +248,39 @@ export default function WalletPage() {
                 </button>
               </div>
               
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-[#C7CEEA] flex items-center justify-center mr-3">
-                      <span>XLM</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">Stellar (XLM)</p>
-                      <p className="text-sm text-gray-500">120.5 XLM</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">$47.12</p>
-                    <p className="text-sm text-green-600">+1.2%</p>
-                  </div>
+              {dataLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                 </div>
-                
-                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-[#C7CEEA] flex items-center justify-center mr-3">
-                      <span>USDC</span>
+              ) : (
+                <div className="space-y-4">
+                  {walletData && walletData.tokens && walletData.tokens.map((token: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-[#C7CEEA] flex items-center justify-center mr-3">
+                          <span>{token.symbol}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{token.name} ({token.symbol})</p>
+                          <p className="text-sm text-gray-500">{token.amount.toFixed(1)} {token.symbol}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${token.usdValue.toFixed(2)}</p>
+                        <p className={`text-sm ${token.change24h > 0 ? 'text-green-600' : token.change24h < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                          {token.change24h > 0 ? '+' : ''}{token.change24h.toFixed(1)}%
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">USD Coin (USDC)</p>
-                      <p className="text-sm text-gray-500">25.0 USDC</p>
+                  ))}
+                  
+                  {(!walletData || !walletData.tokens || walletData.tokens.length === 0) && (
+                    <div className="text-center p-10 text-gray-500">
+                      <p>No assets found in this wallet.</p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">$25.00</p>
-                    <p className="text-sm text-gray-500">0.0%</p>
-                  </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
             
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
