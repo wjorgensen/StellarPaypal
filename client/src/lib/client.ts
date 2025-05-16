@@ -63,6 +63,19 @@ export class WalletClient {
     const { signers } = await response.json();
     return signers;
   }
+
+  /**
+   * Get balance for a contract
+   * This is a mock implementation for demo purposes
+   */
+  static async getBalance(contractId: string): Promise<{XLM: string, USDC: string}> {
+    // In a real implementation, this would fetch balance from Stellar network
+    // For now, we'll return mock data
+    return {
+      XLM: "120.5",
+      USDC: "25.0"
+    };
+  }
   
   /**
    * Create a new wallet

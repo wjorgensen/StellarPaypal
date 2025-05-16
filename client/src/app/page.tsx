@@ -1,111 +1,79 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { WalletClient } from '@/lib/client';
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 
-export default function Home() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [walletInfo, setWalletInfo] = useState<{
-    keyId?: string;
-    contractId?: string;
-  } | null>(null);
-  const [signers, setSigners] = useState<any[]>([]);
-
-  // Create a new wallet
-  const createWallet = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await WalletClient.createWallet(
-        'StellarPaypal', 
-        'User-' + Math.floor(Math.random() * 1000)
-      );
-      setWalletInfo(result);
-      
-      // Get signers for the new wallet
-      const walletSigners = await WalletClient.getSigners(result.contractId);
-      setSigners(walletSigners);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
+export default function LandingPage() {
+  const router = useRouter()
+  const [subtitle, setSubtitle] = useState("")
+  const [showCursor, setShowCursor] = useState(true)
+  const fullSubtitle = "A modern wallet powered by the Stellar blockchain."
+  
+  useEffect(() => {
+    if (subtitle.length < fullSubtitle.length) {
+      const timeout = setTimeout(() => {
+        setSubtitle(fullSubtitle.slice(0, subtitle.length + 1))
+      }, 100)
+      return () => clearTimeout(timeout)
     }
-  };
+  }, [subtitle, fullSubtitle])
+  
+  // blinkeeeing cursor effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowCursor(prev => !prev)
+    }, 500)
+    return () => clearInterval(interval)
+  }, [])
 
-  // Connect to an existing wallet
-  const connectWallet = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await WalletClient.connectWallet();
-      setWalletInfo(result);
-      
-      // Get signers for the connected wallet
-      const walletSigners = await WalletClient.getSigners(result.contractId);
-      setSigners(walletSigners);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleSignUp = () => {
+    router.push("/dashboard")
+  }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-center font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-8 text-center">Stellar Passkey Wallet</h1>
-        
-        <div className="flex flex-col gap-4 mb-8">
-          <button 
-            onClick={createWallet}
-            disabled={loading}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+    <div className="min-h-screen bg-[#C7CEEA] relative overflow-hidden flex items-center justify-center">
+      {/* Only use W-marked paint strokes */}
+      <div className="absolute top-[20%] left-[10%] rotate-[-3.5deg] opacity-60">
+        <Image src="/assets/lowStrokeW.png" alt="" width={500} height={200} priority />
+      </div>
+
+      <div className="absolute bottom-[45%] right-[15%] rotate-[7.5deg] opacity-50">
+        <Image src="/assets/fatStrokeW.png" alt="" width={450} height={170} priority />
+      </div>
+
+      <div className="absolute top-[65%] left-[20%] rotate-[6deg] opacity-40">
+        <Image src="/assets/longStrokeW.png" alt="" width={550} height={200} priority />
+      </div>
+
+      <div className="container mx-auto px-6 py-12 relative z-10 flex flex-col items-center">
+        <div className="text-center mb-20">
+          <div className="mb-16 inline-block">
+            <Image 
+              src="/assets/mosaic.png" 
+              alt="Mosaic" 
+              width={400} 
+              height={140} 
+              priority
+              className="transform hover:scale-105 transition-transform duration-300 drop-shadow-lg"
+            />
+          </div>
+
+          <h2 className="text-2xl md:text-3xl font-light text-black/80 mb-12 max-w-2xl mx-auto h-[40px]">
+            {subtitle}
+            <span className={`inline-block w-[2px] h-[1em] bg-black/80 ml-1 ${showCursor ? 'opacity-100' : 'opacity-0'}`}></span>
+          </h2>
+
+          <button
+            className="rounded-full px-12 py-5 bg-transparent text-white border-2 border-white 
+            hover:bg-white hover:text-[#C7CEEA] transition-all duration-300 font-medium text-lg shadow-md
+            hover:shadow-lg hover:scale-105"
+            onClick={handleSignUp}
           >
-            Create New Wallet
-          </button>
-          
-          <button 
-            onClick={connectWallet}
-            disabled={loading}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Connect Existing Wallet
+            Get Started
           </button>
         </div>
-        
-        {loading && <p className="text-center">Loading...</p>}
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
-        
-        {walletInfo && (
-          <div className="bg-gray-100 p-4 rounded mb-4">
-            <h2 className="text-xl font-bold mb-2">Wallet Info</h2>
-            <p><strong>Key ID:</strong> {walletInfo.keyId}</p>
-            <p><strong>Contract ID:</strong> {walletInfo.contractId}</p>
-          </div>
-        )}
-        
-        {signers.length > 0 && (
-          <div className="bg-gray-100 p-4 rounded">
-            <h2 className="text-xl font-bold mb-2">Signers</h2>
-            <ul className="list-disc pl-5">
-              {signers.map((signer, index) => (
-                <li key={index}>
-                  <strong>{signer.kind}:</strong> {signer.key.substring(0, 10)}...
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
-    </main>
-  );
+    </div>
+  )
 } 
